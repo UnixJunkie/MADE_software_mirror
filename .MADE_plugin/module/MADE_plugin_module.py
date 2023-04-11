@@ -880,14 +880,14 @@ class Database_setup:
         if platform == "win32":
             superpos += ".exe"
             if superpos == "probis.exe":
-                urllib.request.urlretrieve("https://gitlab.com/Vid-Ra/test/-/raw/files/libgsl.dll", "libgsl.dll")
-                urllib.request.urlretrieve("https://gitlab.com/Vid-Ra/test/-/raw/files/libgslcblas.dll", "libgslcblas.dll")
+                urllib.request.urlretrieve("https://gitlab.com/Jukic/made_software/-/raw/Superpos_Methods/libgsl.dll", "libgsl.dll")
+                urllib.request.urlretrieve("https://gitlab.com/Jukic/made_software/-/raw/Superpos_Methods/libgslcblas.dll", "libgslcblas.dll")
             elif superpos == "gplus.exe":
-                urllib.request.urlretrieve("https://gitlab.com/Vid-Ra/test/-/raw/files/libgcc_s_dw2-1.dll", "libgcc_s_dw2-1.dll")
-                urllib.request.urlretrieve("https://gitlab.com/Vid-Ra/test/-/raw/files/libstdc++-6.dll", "libstdc++-6.dll")
+                urllib.request.urlretrieve("https://gitlab.com/Jukic/made_software/-/raw/Superpos_Methods/libgcc_s_dw2-1.dll", "libgcc_s_dw2-1.dll")
+                urllib.request.urlretrieve("https://gitlab.com/Jukic/made_software/-/raw/Superpos_Methods/libstdc++-6.dll", "libstdc++-6.dll")
 
         
-        urllib.request.urlretrieve("https://gitlab.com/Vid-Ra/test/-/raw/files/{}".format(superpos), superpos) # temp URL ##################################################
+        urllib.request.urlretrieve("https://gitlab.com/Jukic/made_software/-/raw/Superpos_Methods/{}".format(superpos), superpos) # temp URL ##################################################
         if platform == "linux":
             if os.access(superpos, os.X_OK) == True:
                 print("{} executable ok".format(superpos))
