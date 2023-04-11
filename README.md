@@ -1,7 +1,7 @@
 # Superposition algorithms in MADE plugin
 
 
-The following superposition methods are included in MADE:
+The following superposition methods (besides PyMOL's Super and Align implementation) are included in MADE:
 - ProBiS
 - GANGSTA+
 - DeepAlign
