@@ -1,7 +1,0 @@
-superpos_tool=PyMOL-align
-hetatm_rad=1.4
-max_dist=0.9
-Local_Bsite_rad=12.0
-Add_Analysis_rad=4.0
-use_allowed=False
-use_not_allowed=False

@@ -1,42 +1,30 @@
-# MADE Plugin
-<img src=".MADE_plugin/UI/Icons/MADE_logo.png" width="200">
+# Superposition algorithms in MADE plugin
 
 
+The following superposition methods are included in MADE:
+- ProBiS
+- GANGSTA+
+- DeepAlign
+- TM-align
 
-## Macromolecular (Maribor) Density and Structure Analysis plugin
-
-
-
-## Description
-MADE plugin is a PyMOL GUI tool that applies the multiple different superposition algorithm for identification and prediction of non-protein species in macromolecular complexes. We have show that the plugin is capable of identifiyng metal ions in their binding sites in *apo* protein structures.
-
-It is based upon the ProBiS H2O plugin (http://insilab.org/probis-h2o/) for detecting conserved water molecules.
-
-## Installation
-
-The MADE plugin is suppported on the Windows and Linux operating systems.
-
-MADE plugin requires the PyMOL (https://pymol.org/) molecular visualization system, the Open-Source PyMOL is available free of charge. Installation instructions can be found on the PyMOL wiki: 
-
-https://pymolwiki.org/index.php/Windows_Install
-
-https://pymolwiki.org/index.php/Linux_Install
-
-MADE plugin also requires the scikit-learn python library (https://scikit-learn.org/), it can be installed though pythons' pip:
-
-    pip install scikit-learn
-
-With PyMOL and scikit-learn installed, install the MADE plugin in the plugins tab of PyMOL:
-- Navigate to **Plugin -> Plugin Manager -> Install New Plugin -> Install from local file** and select the **MADE_Plugin.py** file
-- Upon first startup of the plugin input location of the **.MADE_Plugin** directory, 
-- Selecet a **Local Database Directory** and press **Setup database** in the Settings tab
-
-For a more detailed explanation of the installation and usage of the MADE plugin consult the tutorial pdf.
+The Windows executables/Linux binaries are present in this repository, they are automatically downloaded by the plugin. Below are links to the original repositories and relevant articles. Accessed April 2022.
+Source codes for the superposition algorithoms are also included in the Source_codes directory
 
 
-To reinstall the plugin either delete the .MADE_plugin directory or the .MADE_plugin_installdir.txt file in your home folder and launch the plugin again.
+# ProBiS
+- http://insilab.org/probis-algorithm/
+- Konc, J., Miller, B. T., Stular, T., Lesnik, S., Woodcock, H. L., Brooks, B. R., and Janezic, D. ProBiS-CHARMMing: Web Interface for Prediction and Optimization of Ligands in Protein Binding Sites. J. Chem. Inf. Model., 2015, 55, 2308-2314.
 
-## Citation
-Please cite the following paper if you use the MADE plugin in your work:
+# GANGSTA+
+- https://github.com/guerler/gplus
+- Guerler, A. and Knapp, E.-W. (2008), Novel protein folds and their nonsequential structural analogs. Protein Science, 17: 1374-1382. https://doi.org/10.1110/ps.035469.108
 
+
+# DeepAlign
+- https://github.com/realbigws/DeepAlign
+- Sheng Wang, Jianzhu Ma, Jian Peng and Jinbo Xu. PROTEIN STRUCTURE ALIGNMENT BEYOND SPATIAL PROXIMITY Scientific Reports, 3, 1448, (2013)
+
+# TM-align
+- https://zhanggroup.org/TM-align/
+- Y. Zhang, J. Skolnick, TM-align: A protein structure alignment algorithm based on TM-score, Nucleic Acids Research, 33: 2302-2309 (2005)
 
