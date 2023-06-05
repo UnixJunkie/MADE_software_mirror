@@ -8,7 +8,9 @@
 
 
 ## Description
-MADE plugin is a PyMOL GUI tool that applies the multiple different superposition algorithm for identification and prediction of non-protein species in macromolecular complexes. We have show that the plugin is capable of identifiyng metal ions in their binding sites in *apo* protein structures.
+MADE plugin is a PyMOL GUI tool that applies the multiple different superposition algorithm for identification and prediction of non-protein species in macromolecular complexes. We have show that the plugin is capable of identifiyng metal ions in their binding sites in *apo* protein structures. 
+
+The MADE plugin can be applied for numerous purposes. It can predict locations where important cofactors bind in a protein structure and distinguish them from species that are present as impurities or part of the experimental procedure. The plugin can also be applied to structures modeled by AlphaFold and predict the positions of cofactors in those structures. In addition, the plugin can highlight important pieces of a binding site, such as conserved water or other molecules, and help prepare structures for molecular docking or molecular dynamics simulations.
 
 It is based upon the ProBiS H2O plugin (http://insilab.org/probis-h2o/) for detecting conserved water molecules.
 

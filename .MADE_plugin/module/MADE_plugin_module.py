@@ -287,6 +287,7 @@ dialog = None
 custom = False
 dict_hetatm_typ_coords = {}
 analyzesed_complexes_dict = {}
+analyzesed_complexes_dict_master = {}
 
 red00 = QtGui.QColor('#ffffff')
 red01 = QtGui.QColor('#ffe6e6')
@@ -300,6 +301,16 @@ red08 = QtGui.QColor('#ff3333')
 red09 = QtGui.QColor('#ff1a1a')
 red10 = QtGui.QColor('#ff0000')
 red_list = [red00,red01,red02,red03,red04,red05,red06,red07,red08,red09,red10]
+
+def valid_PDB_ID(target_complex,custom = False, allow_alphafold = False):
+    valid = False
+    if len(target_complex) == 4:
+        valid = True
+    if custom or allow_alphafold:
+        valid = True
+    #print("Valid",target_complex,valid)
+    return valid
+
 
 class GUI:
     def run(self):
@@ -346,11 +357,14 @@ class GUI:
                 dialog.CheckAnalyze.setChecked(True)
 
             if checked == True:
-                target_complex = dialog.LineProtein.text()
-                if len(target_complex) == 4 and os.path.isfile(target_complex+".pdb"):
+                target_complex = Find.get_target_complex()
+                allow_alphafold = dialog.CheckAlphafoldStruct.isChecked()
+
+                if valid_PDB_ID(target_complex,custom=custom,allow_alphafold=allow_alphafold) and os.path.isfile(target_complex+".pdb"):   #ltc_4
                     BindingSites.get_binding_sites()
                 else:
                     dialog.ListIdentify.clear()
+                    dialog.ListEntity.clear()
 
         def CheckAnalyse_changed():
             checked = dialog.CheckAnalyze.isChecked()
@@ -358,48 +372,58 @@ class GUI:
             if checked == True:
                 dialog.CheckCompare.setChecked(False)
                 dialog.CheckWater.setEnabled(True)
+                allow_alphafold = dialog.CheckAlphafoldStruct.isChecked()
 
-                target_complex = dialog.LineProtein.text()
-                if len(target_complex) == 4 and os.path.isfile(target_complex+".pdb"):
+                target_complex = Find.get_target_complex()
+                if valid_PDB_ID(target_complex,custom=custom,allow_alphafold=allow_alphafold)and os.path.isfile(target_complex+".pdb"): #ltc_4
                     BindingSites.get_binding_sites()
                 else:
                     dialog.ListIdentify.clear()
+                    dialog.ListEntity.clear()
             else:
                 dialog.CheckWater.setEnabled(False)
                 dialog.CheckCompare.setChecked(True)
 
         def CheckWater_changed():
-            target_complex = dialog.LineProtein.text()
-            if len(target_complex) == 4 and os.path.isfile(target_complex+".pdb"):
+            target_complex = Find.get_target_complex()
+            allow_alphafold = dialog.CheckAlphafoldStruct.isChecked()
+            
+            if valid_PDB_ID(target_complex,custom=custom,allow_alphafold=allow_alphafold) and os.path.isfile(target_complex+".pdb"):   #ltc_4
                 BindingSites.get_binding_sites()
             else:
                 dialog.ListIdentify.clear()
+                dialog.ListEntity.clear()
+        def CheckAplhafold_changed():
+            target_complex = Find.get_target_complex()
+            allow_alphafold = dialog.CheckAlphafoldStruct.isChecked()
+            
+            if valid_PDB_ID(target_complex,custom=custom,allow_alphafold=allow_alphafold) and os.path.isfile(target_complex+".pdb"):   #ltc_4
+                BindingSites.get_binding_sites()
+            else:
+                dialog.ListIdentify.clear()
+                dialog.ListEntity.clear()
 
-        
         def LineProtein_change(text):
-            target_complex = dialog.LineProtein.text()
-            if len(target_complex) == 4 and os.path.isfile(target_complex+".pdb"):
+            target_complex = Find.get_target_complex()
+            allow_alphafold = dialog.CheckAlphafoldStruct.isChecked()
+
+            if valid_PDB_ID(target_complex,custom=custom,allow_alphafold=allow_alphafold) and os.path.isfile(target_complex+".pdb"):   #ltc_4
                 BindingSites.get_binding_sites()
             else:
                 dialog.ListIdentify.clear()
+                dialog.ListEntity.clear()
 
-        '''
-        def CheckPyMolAlign_change():
-            if dialog.CheckPyMolAlign.isChecked():
-                dialog.CheckPyMolSuper.setChecked(False)
-
-        def CheckPyMolSuper_change():
-            if dialog.CheckPyMolSuper.isChecked():
-                dialog.CheckPyMolAlign.setChecked(False)
-        '''
 
         def MHL_name_var_change():
             try:
                 dialog.LabelPresent.clear()
                 curr_item  = dialog.ListIdentify.currentItem().text().split(" ")[0]
-                target_complex = dialog.LineProtein.text().lower()
+                target_complex = Find.get_target_complex()
                 ComboMMseqs2_list = [30,40,50,70,90,95,100,"Custom"]
-                clustering_cutoff = ComboMMseqs2_list[dialog.ComboMMseqs2.currentIndex()]
+                if not custom:
+                    clustering_cutoff = ComboMMseqs2_list[dialog.ComboMMseqs2.currentIndex()]
+                else:
+                    clustering_cutoff = "Custom_Struct"
                 superposition_tool = dialog.ComboAlignTool.currentText()
 
                 MHL_name = "master_hetatm_list_{}_{}_{}_{}.txt".format(target_complex,curr_item,clustering_cutoff,superposition_tool)
@@ -443,6 +467,24 @@ class GUI:
             else:
                 dialog.LabelAllowedNot.setText("Displaying all HETATMs")
                 dialog.ListAllowedNot.clear()
+        
+        def ListEntity_change():
+            global analyzesed_complexes_dict,analyzesed_complexes_dict_master
+            text = dialog.ListEntity.currentItem().text()
+            curr_chain_ls_chars  = text.split("Chain")[0].split("with")[-1].strip().split(",")
+            curr_chain_ls = []
+            for ch in curr_chain_ls_chars:
+                if not ch: continue
+                chain = ch.strip()
+                curr_chain_ls.append(chain)
+            curr_chain_ls = tuple(curr_chain_ls)
+            curr_entity  = str(text.split(" ")[3])
+            ent_chls = (curr_entity,curr_chain_ls)
+            analyzesed_complexes_dict = analyzesed_complexes_dict_master[ent_chls]
+            print("Complexes in selected cluster",analyzesed_complexes_dict)
+
+
+
 
         def Tabs_change(ind):
             #curr_tab = dialog.Tabs.currentIndex()
@@ -507,7 +549,10 @@ class GUI:
         self.form.CheckAnalyze.stateChanged.connect(CheckAnalyse_changed)
         self.form.CheckCompare.stateChanged.connect(CheckCompare_changed)
         self.form.CheckWater.stateChanged.connect(CheckWater_changed)
-
+        
+        self.form.CheckAlphafoldStruct.stateChanged.connect(CheckAplhafold_changed)
+        
+        self.form.ListEntity.itemSelectionChanged.connect(ListEntity_change)
 
         self.form.PushStop.clicked.connect(Stop_Worker)
 
@@ -757,8 +802,9 @@ class custom_disk_file_get:
             except:
                 QtWidgets.QMessageBox.about(dialog, Plugin_Name + " Warning", "File error or \nFile not Found! \nPlease investigate!")
             dialog.LineProtein.setText(Path(filename).stem)
-            
+            QtWidgets.QMessageBox.about(dialog, Plugin_Name +" Reminder", "You have selected a custom structure,\nAdd a line to the clusters_custom_structure.txt file (in the database directory). The line must contain filenames (without .pdb) of a custom set of homologus structures with protein chains for analysis seperated by an _\n e.g. for a custom structure cstm_str.pdb\n\n cstm_str_A 1a1h_A 1a1g_A 1p47_A 1p47_B")
             custom=True
+            BindingSites.get_binding_sites()
 
 
 class Database_setup:
@@ -847,6 +893,8 @@ class Database_setup:
         if not os.path.isfile("clusters_custom.txt"):
             open("clusters_custom.txt", 'a').close()
 
+        if not os.path.isfile("clusters_custom_structure.txt"):
+            open("clusters_custom_structure.txt", 'a').close()
         dialog.CheckAligned.setEnabled(True)
         dialog.CheckAnalyze.setEnabled(True)
         dialog.CheckCompare.setEnabled(True)
@@ -887,7 +935,7 @@ class Database_setup:
                 urllib.request.urlretrieve("https://gitlab.com/Jukic/made_software/-/raw/Superpos_Methods/libstdc++-6.dll", "libstdc++-6.dll")
 
         
-        urllib.request.urlretrieve("https://gitlab.com/Jukic/made_software/-/raw/Superpos_Methods/{}".format(superpos), superpos) # temp URL ##################################################
+        urllib.request.urlretrieve("https://gitlab.com/Jukic/made_software/-/raw/Superpos_Methods/{}".format(superpos), superpos)
         if platform == "linux":
             if os.access(superpos, os.X_OK) == True:
                 print("{} executable ok".format(superpos))
@@ -997,13 +1045,111 @@ class ClusterComplexManipulation:
 
     @staticmethod
     def Find_GUI_interaction(Find_GUI):
+        global analyzesed_complexes_dict_master,entity_chain_dict
         dialog.LineFind.setText(Find_GUI)
         dialog.PushDownlad.setEnabled(True)
+        dialog.ListEntity.clear()
+        #target_complex = Find.get_target_complex()
+        entry_ls = []
+        n_chains_ls = []
+        for ent_chain_ls, analyzesed_complexes_dict in analyzesed_complexes_dict_master.items():
+            entity,chain_ls = ent_chain_ls
+            chain_str = ""
+            for chain in chain_ls:
+                chain_str += "{}, ".format(chain)
+            chain_str = chain_str.rstrip().rstrip(",")
+            n_chains = sum([len(chains) for i,chains in analyzesed_complexes_dict.items()])
+            entity,name = entity_chain_dict[ent_chain_ls]
+            entry = "Cluster for Entity {} with {} Chain{}, {} , {} Homologous Complexes, {} Chains".format(entity,chain_str,"" if len(chain_ls) == 1 else "s",name,len(analyzesed_complexes_dict),n_chains)
+            entry_ls.append(entry)
+            n_chains_ls.append(n_chains)
+        
+        entry_ls =[x for _, x in sorted(zip(n_chains_ls,entry_ls), key=lambda x: x[0],reverse=True)]
+ 
+        for entry in entry_ls:
+            dialog.ListEntity.addItem(entry)
+
+
+    @staticmethod
+    def find_analyzesed_complexes_dict_custom_struct(name):
+        filename  = "clusters_custom_structure.txt"
+        vzorec_name =re.compile(name,re.IGNORECASE) 
+        ent = 1
+        chains_ls_ls = []
+        lin_split_dict = {}
+        global entity_chain_dict
+        entity_chain_dict = {}
+        with open(filename , "rt") as infile:
+            for lin in infile.readlines():
+                match = vzorec_name.search(lin)
+                if match:
+                    lin_split_temp = lin.strip().split(' ')
+                    chain_ls = []
+                    bl = False
+                    for comp_chain in lin_split_temp:
+                        match2 = vzorec_name.search(comp_chain)
+                        if match2:
+                            
+                            try:
+                                comp,chain = comp_chain.split("_")
+                            except:
+                                comp = ""
+                                spl = comp_chain.split("_")
+                                for i in range(len(spl)-1):
+                                    comp += spl[i]
+                                    if i != len(spl)-2:
+                                        comp += "_"
+                                chain = spl[-1]
+                            #print(comp.lower() == name.lower(),comp,name)
+                            if comp.lower() == name.lower():  
+                                bl = True
+                                lin_split = lin_split_temp
+                                chain_ls.append(chain)
+                            
+                    if bl:
+                        
+                        chain_ls = tuple(chain_ls)
+                        ent_chain = (str(ent),chain_ls)
+                        lin_split_dict[ent_chain] = lin_split_temp
+                        entity_chain_dict[ent_chain] = [ent,"custom structure"]
+                        chains_ls_ls.append(ent_chain)
+                        ent+=1
+
+        analyzesed_complexes_dict_master = {}
+        analyzesed_complexes_dict_tmp ={}
+        for chains in chains_ls_ls[::-1]:
+            analyzesed_complexes_dict_tmp = {}
+            lin_split =  lin_split_dict[chains]
+            for comp_chain in lin_split:
+                try:
+                    comp,chain = comp_chain.split("_")
+                except:
+                    comp = ""
+                    spl = comp_chain.split("_")
+                    for i in range(len(spl)-1):
+                        comp += spl[i]
+                        if i != len(spl)-2:
+                            comp += "_"
+                    chain = spl[-1]
+                    #print("comp,chain",comp,chain)
+
+
+                comp = comp.lower()
+                chain = chain.upper()
+
+                if comp in analyzesed_complexes_dict_tmp:
+                    analyzesed_complexes_dict_tmp[comp] += [chain]
+                else:
+                    analyzesed_complexes_dict_tmp[comp] = [chain]
+            analyzesed_complexes_dict_master[chains] = analyzesed_complexes_dict_tmp
+
+        return analyzesed_complexes_dict_tmp, analyzesed_complexes_dict_master
 
     @staticmethod
     def find_analyzesed_complexes_dict(name,filename,worker):
         # searches filename (clusters-by-entity-xx.txt or clusters_custom.txt)
         # finds the analyzesed_complexes_dict, dictionary of analyzesed_complexes_dict[PDB_ID] = [list_of_similar_chains]
+        # finds the analyzesed_complexes_dict_master, dict of analyzesed_complexes_dict for each cluster
 
         if dialog.threadpool.maxThreadCount() > 16:
             dialog.threadpool.setMaxThreadCount(16)
@@ -1011,6 +1157,10 @@ class ClusterComplexManipulation:
         vzorec_name =re.compile(name,re.IGNORECASE) 
         lin_split = []
         
+        lin_split_dict = {}
+        chains_ls_ls = []
+        global entity_chain_dict
+        entity_chain_dict = {}
         try:
             clus_str = "MMseqs2"
             if filename == "clusters_custom.txt":
@@ -1019,7 +1169,8 @@ class ClusterComplexManipulation:
                 seq_cutoff = filename.replace("clusters-by-entity-","").replace(".txt","")
                 clus_str = seq_cutoff + "% sequence identity MMseqs2"
 
-
+            #allow_alphafold = dialog.CheckAlphafoldStruct.isChecked()
+            
             with open(filename , "rt") as infile:
                 for lin in infile.readlines():
                     match = vzorec_name.search(lin)
@@ -1041,65 +1192,89 @@ class ClusterComplexManipulation:
                                         if i != len(spl)-2:
                                             comp += "_"
                                     entity = spl[-1]
-                                if len(comp) == 4:
-                                    lin_split = lin_split_temp
-                                    break
+                                if comp.lower() == name.lower():   #valid_PDB_ID(comp,custom=custom,allow_alphafold=allow_alphafold):   #ltc_4
+                                    chain_ls,desc = ClusterComplexManipulation.get_chain_list_from_pdb_entity_id(comp,entity,get_name=True)
+                                    chain_ls = (entity,tuple(chain_ls))
+                                    
+                                    lin_split_dict[chain_ls] = lin_split_temp
+                                    chains_ls_ls.append(chain_ls)
+                                    entity_chain_dict[chain_ls] = [entity,desc]
+                                    #break
 
         except:
             print(filename,"does not exist!")
             return
         
+
+
         global fin_thread_worker_counter,thread_worker_counter
         fin_thread_worker_counter = 0
         thread_worker_counter = 0
-        target_complex = dialog.LineProtein.text()
 
-        worker.find_GUI.emit(str(len(lin_split)) + " complexes in {} cluster of {}.".format(clus_str,target_complex))
+        #worker.find_GUI.emit(str(len(lin_split_dict)) + " clusters found.")
+        #worker.find_GUI.emit(str(len(lin_split)) + " complexes in {} cluster of {}.".format(clus_str,target_complex))
 
 
         global analyzesed_complexes_dict_temp
-        analyzesed_complexes_dict_temp = {}
-        for comp_chain in lin_split:
-            try:
-                comp,entity = comp_chain.split("_")
-            except:
-                comp = ""
-                spl = comp_chain.split("_")
-                for i in range(len(spl)-1):
-                    comp += spl[i]
-                    if i != len(spl)-2:
-                        comp += "_"
-                entity = spl[-1]
+        analyzesed_complexes_dict_master = {}
 
-            if worker.exit_flag:
-                
-                break
 
-            comp = comp.lower()
-            entity = entity.upper()
-            if len(comp )== 4:
-                thread_worker_counter += 1
-                thread_worker = ThreadWorker_get_chain_list(comp,entity)
-                dialog.threadpool.start(thread_worker)
+        for chains in chains_ls_ls[::-1]:
+            lin_split =  lin_split_dict[chains]
+            analyzesed_complexes_dict_temp = {}
+
+            for comp_chain in lin_split:
+                try:
+                    comp,entity = comp_chain.split("_")
+                except:
+                    comp = ""
+                    spl = comp_chain.split("_")
+                    for i in range(len(spl)-1):
+                        comp += spl[i]
+                        if i != len(spl)-2:
+                            comp += "_"
+                    entity = spl[-1]
+
+                if worker.exit_flag:
+                    
+                    break
+
+                comp = comp.lower()
+                entity = entity.upper()
+                if valid_PDB_ID(comp):   #ltc_4
+                    thread_worker_counter += 1
+                    thread_worker = ThreadWorker_get_chain_list(comp,entity)
+                    dialog.threadpool.start(thread_worker)
 
         
-        while fin_thread_worker_counter != thread_worker_counter:
-            if worker.exit_flag:
-                break
-           
-        return analyzesed_complexes_dict_temp
+            while fin_thread_worker_counter != thread_worker_counter:
+                if worker.exit_flag:
+                    break
+            analyzesed_complexes_dict_master[chains] = analyzesed_complexes_dict_temp
+        print(analyzesed_complexes_dict_master)
+
+        return analyzesed_complexes_dict_temp, analyzesed_complexes_dict_master
     @staticmethod
-    def get_chain_list_from_pdb_entity_id(pdb_id,entity_id):
+    def get_chain_list_from_pdb_entity_id(pdb_id,entity_id,get_name = False):
         # queries the rcsb pdb for chains belonging to the entity
         try:
             url = "https://data.rcsb.org/rest/v1/core/polymer_entity/{}/{}".format(pdb_id.upper(),entity_id)
             response = urllib.request.urlopen( url ) 
             js = json.load(response)
             chain_ls = js["entity_poly"]["pdbx_strand_id"].split(",")
+            try:
+                name = js["rcsb_polymer_entity"]["pdbx_description"]
+            except:
+                name = ""
+            
         except:
             print("Error with getting chains for {} {}".format(pdb_id.upper(),entity_id))
             print(sys.exc_info())
             chain_ls = []
+            name = ""
+        
+        if get_name:
+            return chain_ls,name
 
         return chain_ls
 
@@ -1107,24 +1282,31 @@ class ClusterComplexManipulation:
     @staticmethod
     def get_cluster_unique_list(target_complex, sele_name, seq_id,worker):
 
-        target_complex = dialog.LineProtein.text()
+        target_complex = Find.get_target_complex()
         print("target_complex",target_complex)
         try:
         
-            global analyzesed_complexes_dict
+            global analyzesed_complexes_dict,analyzesed_complexes_dict_master
             if sele_name == "clusters":
                 filename = sele_name + seq_id + ".txt"
-                analyzesed_complexes_dict =  ClusterComplexManipulation.find_analyzesed_complexes_dict(target_complex,filename,worker)
-                clus_str = "Custom"
+                analyzesed_complexes_dict,analyzesed_complexes_dict_master =  ClusterComplexManipulation.find_analyzesed_complexes_dict(target_complex,filename,worker)
+                clus_str = "Custom cluster"
 
                 #worker.find_GUI.emit(str(len(analyzesed_complexes_dict)) + " complexes in cluster")
-                print("Using custom cluster of complexes, reading data form clusters_custom.txt in the database directory")
+                print("Using custom cluster of complexes, reading data from clusters_custom.txt in the database directory")
                 print("Found " + str(len(analyzesed_complexes_dict)) +  " of complexes in cluster")
+            elif custom:
+                print("Using custom structure with a custom of complexes, reading data from clusters_custom_structure.txt in the database directory")
+
+                analyzesed_complexes_dict,analyzesed_complexes_dict_master = ClusterComplexManipulation.find_analyzesed_complexes_dict_custom_struct(target_complex)
+                clus_str = "Custom structure cluster"
+
+
 
             else:
                 filename = sele_name + seq_id + ".txt"
                 print("filename",filename)
-                analyzesed_complexes_dict =  ClusterComplexManipulation.find_analyzesed_complexes_dict(target_complex,filename,worker)
+                analyzesed_complexes_dict,analyzesed_complexes_dict_master =  ClusterComplexManipulation.find_analyzesed_complexes_dict(target_complex,filename,worker)
                 clus_str = seq_id + "% sequence identity MMseqs2"
 
                 print("\nComplexes and chains: ")
@@ -1134,8 +1316,8 @@ class ClusterComplexManipulation:
                 print("""Steinegger, M., Söding, J. MMseqs2 enables sensitive protein sequence searching for the analysis of massive data sets. Nat Biotechnol 35, 1026–1028 (2017). https://doi.org/10.1038/nbt.3988""")
                 print("Found " + str(len(analyzesed_complexes_dict)) +  " of complexes in cluster")
 
-            n_chains = sum([len(chains) for i,chains in analyzesed_complexes_dict.items()])
-            worker.find_GUI.emit(str(len(analyzesed_complexes_dict)) + " complexes in {} cluster of {}. {} homologous chains.".format(clus_str,target_complex,n_chains))
+            #
+            worker.find_GUI.emit("Found {} cluster{} of complexes in {} of {}:".format(len(analyzesed_complexes_dict_master),"" if len(analyzesed_complexes_dict_master) == 1 else "s",clus_str,target_complex))
             worker.finished.emit()
 
         
@@ -1156,15 +1338,13 @@ class ClusterComplexManipulation:
     @staticmethod
     def get_cluster_complexes(worker):
 
-        target_complex = dialog.LineProtein.text()
+        target_complex = Find.get_target_complex()
+        allow_alphafold = dialog.CheckAlphafoldStruct.isChecked()
 
-        if len(target_complex) < 4 and not custom:
+        if not valid_PDB_ID(target_complex,custom=custom,allow_alphafold=allow_alphafold):   #ltc_4
             worker.signal_make_msg_box.emit(Plugin_Name+" Warning |Invalid PDB ID!")
             worker.finished.emit()
-            
-        elif len(target_complex) > 4 and not custom:
-            worker.signal_make_msg_box.emit(Plugin_Name+" Warning |Invalid PDB ID!")
-            worker.finished.emit()
+
         else:
 
             if dialog.ComboMMseqs2.currentText() == "Custom Cluster":
@@ -1222,6 +1402,53 @@ class ClusterComplexManipulation:
             print(sys.exc_info())
             print("Problem Downlading PDB ID",pdb_id)
             return 1
+    
+    
+    @staticmethod
+    def AF_ID_CMS_ID(ID,output = "CMS"):
+        # converts RBSB PDB CMS ID into alphafold ID if neccesary, outputs the requested in lowercase
+        allow_alphafold = dialog.CheckAlphafoldStruct.isChecked()
+        if allow_alphafold:
+            if  ID.count("_") == 1 and ID.count("-") == 0:
+                cms_id = ID
+                af_id = cms_id[3:5]+"-"+cms_id[5:-2] + "-" + cms_id[-2:]
+            elif ID.count("-") == 2 and ID.count("_") == 0:
+                af_id = ID
+                cms_id = "AF_"+af_id.replace("-","")
+            else:
+                return ID.lower()
+
+            if output == "CMS":
+                return cms_id.lower()
+            else:
+                return af_id.lower()
+        
+        return ID.lower()
+    @staticmethod
+    def get_AF_PDB_file(ID):
+        # downloads alphafold file form alphafold site, converts RBSB PDB CMS ID into alphafold ID if neccesary
+        #    AF_AFA0A009IHW8F1   ->    AF-A0A009IHW8-F1
+        af_pdb_id = ClusterComplexManipulation.AF_ID_CMS_ID(ID,output = "CMS")
+        alphafold_ID = ClusterComplexManipulation.AF_ID_CMS_ID(ID,output = "AF")
+        
+        database_version = "v4"
+        
+        model_url = f'https://alphafold.ebi.ac.uk/files/{alphafold_ID.upper()}-model_{database_version}.pdb'
+        #print(af_pdb_id)
+        #print(alphafold_ID)
+        #print(model_url)
+        try:
+            with open(f"{af_pdb_id.lower()}.pdb","wb") as out:
+                for line in urllib.request.urlopen( model_url ) :
+                    out.write(line)
+        except:
+            print(sys.exc_info())
+            print("Problem Downlading alphafold structure ",alphafold_ID,"  CMS ID: ",af_pdb_id)
+            return 1
+        
+
+
+
     @staticmethod
     def download_complexes(worker):
 
@@ -1262,13 +1489,25 @@ class ClusterComplexManipulation:
             worker.signal_make_msg_box.emit(Plugin_Name+ " Message" + "|Download of complexes finished!")
             
             
-            worker.Download_GUI.emit()
 
-            worker.finished.emit()
-            return None
+            #worker.finished.emit()
+            #return None
         except:
             worker.signal_make_msg_box.emit(Plugin_Name+" Warning"+"|"+ "Check all settings, \nPlease investigate!")
+            return 1
+        
+        allow_alphafold = dialog.CheckAlphafoldStruct.isChecked()
+        target_complex = Find.get_target_complex()
+        if not valid_PDB_ID(ClusterComplexManipulation.AF_ID_CMS_ID(target_complex,output = "CMS"),custom=False,allow_alphafold=False) and len(analyzesed_complexes_dict) > 0:
+            # ID has a cluster, is longer than 4
+
+            if allow_alphafold:
+                print("Downloading Alphafold structure,", target_complex)
+                ClusterComplexManipulation.get_AF_PDB_file(target_complex)
+        worker.Download_GUI.emit()
+        
         worker.finished.emit()
+
         
 
 
@@ -1286,9 +1525,9 @@ class BindingSites:
             water_sel = dialog.CheckWater.isChecked()
             chain_sel = dialog.CheckCompare.isChecked()
             if custom == True:
-                target_complex_2 = filename #dialog.LineProtein.text()
+                target_complex_2 = filename #dialog.LineProtein.text().lower()
             else:
-                target_complex_2 = (dialog.LineProtein.text().lower() + ".pdb")
+                target_complex_2 = (Find.get_target_complex() + ".pdb")
             
             vzorec_2 = re.compile("^" + "ATOM")
             vzorec_3 = re.compile("^" + "HETATM")
@@ -1986,7 +2225,11 @@ class Align_methods:
 dic_all_hetatm_types_names = {}
 dic_all_hetatm_types_formulas = {}
 class Find:
-
+    @staticmethod
+    def get_target_complex():
+        tc = dialog.LineProtein.text().lower()
+        target_complex = ClusterComplexManipulation.AF_ID_CMS_ID(tc,"CMS")
+        return target_complex
 
     @staticmethod
     def find_hetnames(filename_pdb):
@@ -2036,6 +2279,35 @@ class Find:
         except:
             pass
     
+    
+    @staticmethod
+    def find_pdb_resolution(filename_pdb):
+        with  open(filename_pdb,'r') as fil_pdb:
+            lines_pdb = fil_pdb.readlines()
+        
+        res_pattern = re.compile("^REMARK   2 RESOLUTION.") 
+        resolution = None
+
+        for i,line in enumerate(lines_pdb):
+            
+            if res_pattern.match(line):
+                #REMARK   2 RESOLUTION.    1.60 ANGSTROMS.                                       
+                # 0       1   2                3   4
+                ls_spl = line.strip().split()
+                while "" in ls_spl:
+                    ls_spl.remove("")
+                try:
+                    resolution = float(ls_spl[3])
+                except:
+                    #print(ls_spl)
+                    pass
+
+                break
+            
+            if i == 500:
+                break
+        return resolution
+
     @staticmethod
     def find_ion_list():
         # returns the list of heteratoms defined as ions, "List_Ions.txt" in settings directory
@@ -2604,7 +2876,7 @@ class Analysis:
 
         
         if report_list_1 == []:
-            report_filename = "report_" + dialog.LineProtein.text().lower()+"_"+ dialog.ComboAlignTool.currentText()+ ".txt"
+            report_filename = "report_" + Find.get_target_complex()+"_"+ dialog.ComboAlignTool.currentText()+ ".txt"
             nova_datoteka = open(os.path.join(report_dir,report_filename), "w").close()
 
         # single alligned chain per PDB entry
@@ -2615,7 +2887,7 @@ class Analysis:
         chain_sel = dialog.CheckCompare.isChecked()
         
 
-        target_complex_2 = dialog.LineProtein.text().lower()
+        target_complex_2 = Find.get_target_complex()
 
 
         try:
@@ -2648,6 +2920,28 @@ class Analysis:
         else:
             pass
         
+        res_list = []
+        comp_res_dict = {}
+        high_res_comp_ls = []
+        for comp in analyzesed_complexes_dict.keys():
+            #finding the identites of heteroatoms
+            try:
+                resolution = Find.find_pdb_resolution(comp.lower() + ".pdb")
+            except:
+                resolution = None
+            #print(comp,resolution)
+            if not resolution:
+                continue
+            res_list.append(resolution)
+            comp_res_dict[comp] = resolution
+
+            if resolution > 3.0:
+                high_res_comp_ls.append(comp)
+
+        
+        res_list = np.array(res_list)
+        avg_res = np.mean(res_list)
+        std_res = np.std(res_list,ddof=1)
 
         report_list_1.append("\n\n\nExamined complex: " + target_complex_2)
         report_list_1.append("Whole chain setting used: " + str(chain_sel))
@@ -2659,22 +2953,35 @@ class Analysis:
             report_list_1.append("Whole chain selection: / (not used)")
             report_list_1.append("Binding site selection: " + bsite_selection)
             report_list_1.append("Chain selection: " + chain_selection)
-
-        if  dialog.ComboMMseqs2.currentText() == "Custom Cluster":
-            report_list_1.append("Used a custom clusters of complexes")
+        if not custom:
+                    
+            if  dialog.ComboMMseqs2.currentText() == "Custom Cluster":
+                report_list_1.append("Used a custom clusters of complexes")
+            else:
+                report_list_1.append("Used PDB complexes with " + dialog.ComboMMseqs2.currentText() + " sequence identity")
         else:
-            report_list_1.append("Used PDB complexes with " + dialog.ComboMMseqs2.currentText() + " sequence identity")
+            report_list_1.append("Used a custom structure with a custom clusters of complexes")
+
         try:
             report_list_1.append("Unique structures in identified cluster: " + str(list(analyzesed_complexes_dict.keys())) + "\n\n\n")
         except NameError:
             worker.signal_make_msg_box.emit(Plugin_Name+" Warning"+ "|Click Find to define the cluster of complexes to be analysed")
             worker.finished.emit()
             return 
+
+        report_list_1.append("Resolution of complexes [in Å]:")
+        report_list_1.append(str(comp_res_dict))
+        report_list_1.append("Average Resolution of complexes in cluster: {} ± {} Å\n".format(round(avg_res,3),round(std_res,3)))
+        if high_res_comp_ls:
+            report_list_1.append("The following complexes have poor resolution ( > 3 Å):    " + str(high_res_comp_ls )+ "\n")
+
         
-        if target_complex_2.lower() not in analyzesed_complexes_dict.keys():
-            worker.signal_make_msg_box.emit(Plugin_Name+" Warning" "|Target complex not in defined cluster of complexes\nClick Find to redefine the cluster of complexes to be analysed")
-            worker.finished.emit()
-            return 
+        allow_alphafold = dialog.CheckAlphafoldStruct.isChecked()
+        if not allow_alphafold:
+            if target_complex_2.lower() not in analyzesed_complexes_dict.keys():
+                worker.signal_make_msg_box.emit(Plugin_Name+" Warning" "|Target complex not in defined cluster of complexes\nClick Find to redefine the cluster of complexes to be analysed")
+                worker.finished.emit()
+                return 
 
         for komp in analyzesed_complexes_dict.keys():
             try:
@@ -2888,7 +3195,24 @@ class Analysis:
             for filename_rota in filenames: 
                 print("  Finding heteratoms in {}, {}/{}".format(filename_rota,i,int(len(set(filenames)))+1))
                 # finding heteroatoms
-                pdb_fnm = filename_rota.split("_")[-1].split(".")[0][:-1]+".pdb"
+                #pdb_fnm = filename_rota.split("_")[-1].split(".")[0][:-1]+".pdb"
+                pdb_fnm = ""
+                match_ls = []
+                for pdb_name in analyzesed_complexes_dict.keys():
+                    if pdb_name == target_complex_2: continue
+                    if pdb_name in filename_rota:
+                        match_ls.append(pdb_name)
+                match_ls = sorted(match_ls,reverse=True,key= lambda x: len(x))
+                
+                try:
+                    pdb_fnm = match_ls[0] +".pdb"
+                except:
+                    print(sys.exc_info())
+                    print("error",pdb_fnm)
+                    continue
+
+
+
                 find_all_hetatms_B_corr(filename_rota,pdb_fnm,vzorec_end) # takes B from the original pdb file, not the aligned one
                 i += 1
                 prog_count += 1
@@ -3009,6 +3333,10 @@ class Analysis:
 
         worker.analysis_GUI.emit([target_complex_2,chain_sel,whole_chain_compare_selection,bsite_selection,chain_selection,superposition_tool,system_volume])
         
+        
+        
+
+
         return None
 
     def Analysis_GUI_interaction(analysis_GUI):
@@ -3018,6 +3346,30 @@ class Analysis:
         target_complex_2,chain_sel,whole_chain_compare_selection,bsite_selection,chain_selection,superposition_tool,system_volume = args_ls
         dialog.PlainInfo.clear() #######################################################################################################################################
         dialog.Tabs.setCurrentIndex(1) #######################################################################################################################################
+
+
+        res_list = []
+        comp_res_dict = {}
+        high_res_comp_ls = []
+        for comp in analyzesed_complexes_dict.keys():
+            #finding the identites of heteroatoms
+            try:
+                resolution = Find.find_pdb_resolution(comp.lower() + ".pdb")
+            except:
+                resolution = None
+            #print(comp,resolution)
+            if not resolution:
+                continue
+            res_list.append(resolution)
+            comp_res_dict[comp] = resolution
+
+            if resolution > 3.0:
+                high_res_comp_ls.append(comp)
+
+        
+        res_list = np.array(res_list)
+        avg_res = np.mean(res_list)
+        std_res = np.std(res_list,ddof=1)
 
         dialog.PlainInfo.insertPlainText("Examined complex: " + target_complex_2+"\n")
         dialog.PlainInfo.insertPlainText("Whole chain setting used: " + str(chain_sel)+"\n")
@@ -3031,13 +3383,20 @@ class Analysis:
             dialog.PlainInfo.insertPlainText("Chain selection: " + chain_selection+"\n")
 
         dialog.PlainInfo.insertPlainText("Superposition method used: {}\n".format(superposition_tool))
-        if  dialog.ComboMMseqs2.currentText() == "Custom Cluster":
-            dialog.PlainInfo.insertPlainText("Used a custom clusters of complexes\n")
+        if not custom:
+            if  dialog.ComboMMseqs2.currentText() == "Custom Cluster":
+                dialog.PlainInfo.insertPlainText("Used a custom clusters of complexes\n")
+            else:
+                dialog.PlainInfo.insertPlainText("Used PDB complexes with " + dialog.ComboMMseqs2.currentText() + " sequence identity\n")
         else:
-            dialog.PlainInfo.insertPlainText("Used PDB complexes with " + dialog.ComboMMseqs2.currentText() + " sequence identity\n")
-
+            dialog.PlainInfo.insertPlainText("Used a custom structure with a custom clusters of complexes\n")
         #dialog.PlainInfo.insertPlainText("Used PDB clusters with: " + dialog.ComboMMseqs2.currentText() + " %"+"\n")
-        dialog.PlainInfo.insertPlainText("Unique structures in identified cluster: " + str(list(analyzesed_complexes_dict.keys())) + "\n\n")
+        dialog.PlainInfo.insertPlainText("Unique structures in identified cluster: " + str(list(analyzesed_complexes_dict.keys())) + "\n")
+        dialog.PlainInfo.insertPlainText("Average Resolution of complexes in cluster: {} ± {} Å\n".format(round(avg_res,3),round(std_res,3)))
+        if high_res_comp_ls:
+            dialog.PlainInfo.insertPlainText("The following complexes have poor resolution ( > 3 Å):    " + str(high_res_comp_ls )+ "\n")
+        else:
+            dialog.PlainInfo.insertPlainText("\n")
         dialog.PlainInfo.insertPlainText("System volume is: %d cubic A\n" % (system_volume))
 
         dialog.ListCalculated.clear()
@@ -3048,18 +3407,27 @@ class Analysis:
 
 
         list_all_hetatms_types = list(set(map(lambda x: x.split("-")[0],dict_hetatm_typ_coords_master.keys())))
-        dialog.PlainInfo.insertPlainText("\n\nAll HETATM types present: {}\n".format(list_all_hetatms_types))
+        dialog.PlainInfo.insertPlainText("\nAll HETATM types present: {}\n".format(list_all_hetatms_types))
 
     
         try:
             # print the identites of hetaroatoms
-            dialog.PlainInfo.insertPlainText("\nIdentities of identified heteroatoms:\n")
+            dialog.PlainInfo.insertPlainText("Identities of identified heteroatoms:\n")
             for typ in dic_all_hetatm_types_names.keys():
                 dialog.PlainInfo.insertPlainText("HETATM Type:  {}\n   Name:   {}\n   Formula:    {}\n".format(typ,dic_all_hetatm_types_names[typ],dic_all_hetatm_types_formulas[typ]))
         except:
             pass
         dialog.Tabs.setCurrentIndex(1)
+    
 
+        
+        print("Resolution of complexes [in Å]:")
+        print(comp_res_dict)
+
+        print("Average Resolution of complexes in cluster: {}±{} Å".format(round(avg_res,3),round(std_res,3)))
+        if high_res_comp_ls:
+            print("The following complexes have poor resolution ( > 3 Å):")
+            print(high_res_comp_ls)
         ################################################################################
     
         
@@ -3094,7 +3462,7 @@ class pyMOLinterface:
     @staticmethod
     def PyMOL_close_resi_contacts(): 
         # draws distances to the closest atoms of close residues
-        target_complex_3 = dialog.LineProtein.text().lower()
+        target_complex_3 = Find.get_target_complex()
         cmd.delete("dist*")
 
         def dist(coords1,coords2):
@@ -3162,11 +3530,13 @@ class pyMOLinterface:
         # deletes all, fetches the targed complex
 
         cmd.delete(name = "all")
-        target_complex_3 = dialog.LineProtein.text().lower()
+        target_complex_3 = Find.get_target_complex()
         print("Target Complex: "+target_complex_3)
-
+        allow_alphafold = dialog.CheckAlphafoldStruct.isChecked()
         if custom == True:
             cmd.load(filename, target_complex_3)
+        elif allow_alphafold:
+            cmd.load(target_complex_3+".pdb", target_complex_3)
         else:
             cmd.fetch(target_complex_3, target_complex_3)
         
@@ -3214,304 +3584,300 @@ class pyMOLinterface:
         # B factor
         debye_waller_check = dialog.CheckDebye.isChecked()
 
-        master_bsite_list_het = []
-        master_bsite_list_het_coord_x = []
-        master_bsite_list_het_coord_y = []
-        master_bsite_list_het_coord_z = []
-        master_list_het = []
-        master_list_het_coord_x = []
-        master_list_het_coord_y = []
-        master_list_het_coord_z = []
-        # Debye Waller
-        master_bsite_list_atom_iso_displacement = []
-        master_list_het_iso_disp = []
-        # master_list_names = []
-        master_bsite_list_info = []
-        master_list_info = []
-
-
-        
-
-
-
-        try:
-            selected_hetatm_typ = dialog.ListCalculated.currentItem().text().split()[4]
-           
-            if selected_hetatm_typ == "least":  selected_hetatm_typ = dialog.ListCalculated.currentItem().text().split()[6]
-
-        except AttributeError:
-            QtWidgets.QMessageBox.about(dialog, Plugin_Name + " WARNING", "Select HETATM cluster(s) to display in the PyMOL viewer")
-            return
-        print('Clusters of {} Heteroatoms:'.format(selected_hetatm_typ))
-
-        mhl_file = open(os.path.join(MHL_dir,dialog.LineMHLName.text()), "r") 
-        lines = mhl_file.readlines()
-                #f'{x_hetm} {y_hetm} {z_hetm} {B_hetm} {filename} {seq_nr} {typ}\n'
-        
-        vdw_rad = dialog.SpinRadius.value()
-        for line in lines:
-            if line[0] == "#":
-                continue
-            x_hetm,y_hetm,z_hetm,B_hetm,serial_nr,chain_iden,hetatm_typ,atom_name,seq_nr,PDB_id = line.strip().split(" ")
-                            #x y z B serial_nr chain_iden hetatom_typ atom_name sequence_nr PDB_id
-            temp_list = []
-            if hetatm_typ+"-"+atom_name == selected_hetatm_typ:
-            
-                x = float(x_hetm)
-                y = float(y_hetm)
-                z = float(z_hetm)
-                B = float(B_hetm)
-                
-                if B < 0:
-                    B = 0
-                info = "{} {} {} {} {} {}".format(serial_nr,chain_iden,hetatm_typ,atom_name,seq_nr,PDB_id)
-
-
-                
-                isotropni_displacement = math.sqrt(B/(8*((math.pi)**2))) + vdw_rad
-                # B = (isotropni_displacement-vdw_rad)**2 * (8*((math.pi)**2)
-
-
-
-                temp_list.append(x)
-                temp_list.append(y)
-                temp_list.append(z)
-
-                # name of bsite, axerage x, average y, average z, min x, max x, min y, max y, min z, max z
-
-
-                if bsite_space_check == True and chain_sel == False:
-                    #if SELECTED_SITE[4] - 4 <= temp_list[0] <= SELECTED_SITE[5] + 4:
-                    #    if SELECTED_SITE[6] - 4 <= temp_list[1] <= SELECTED_SITE[7] + 4:
-                    #        if SELECTED_SITE[8] - 4 <= temp_list[2] <= SELECTED_SITE[9] + 4:
-                    if atom_min_x <= temp_list[0] <= atom_max_x:
-                        if atom_min_y <= temp_list[1] <= atom_max_y:
-                            if atom_min_z <= temp_list[2] <= atom_max_z:
-                                master_bsite_list_het.append(temp_list)
-                                x2 = float(temp_list[0])
-                                master_bsite_list_het_coord_x.append(x2)
-                                y2 = float(temp_list[1])
-                                master_bsite_list_het_coord_y.append(y2)
-                                z2 = float(temp_list[2])
-                                master_bsite_list_het_coord_z.append(z2)
-                                master_bsite_list_atom_iso_displacement.append(isotropni_displacement)
-                                master_bsite_list_info.append(info)
-
-                if bsite_space_check == False and chain_sel == False:
-                    if atom_min_x <= temp_list[0] <= atom_max_x:
-                        if atom_min_y <= temp_list[1] <= atom_max_y:
-                            if atom_min_z <= temp_list[2] <= atom_max_z:
-                                master_list_het_coord_x.append(x)
-                                master_list_het_coord_y.append(y)
-                                master_list_het_coord_z.append(z)
-                                master_list_het.append(temp_list)
-                                master_list_het_iso_disp.append(isotropni_displacement)
-                                master_list_info.append(info)
-
-                if chain_sel == True:
-                    if atom_min_x <= temp_list[0] <= atom_max_x:
-                        if atom_min_y <= temp_list[1] <= atom_max_y:
-                            if atom_min_z <= temp_list[2] <= atom_max_z:
-                                master_list_het_coord_x.append(x)
-                                master_list_het_coord_y.append(y)
-                                master_list_het_coord_z.append(z)
-                                master_list_het.append(temp_list)
-                                master_list_het_iso_disp.append(isotropni_displacement)
-                                master_list_info.append(info)
-
-
-                else:
-                    pass
-
-
-        if bsite_space_check == True and chain_sel == False:
-            master_list_het = master_bsite_list_het
-            master_list_het_iso_disp = master_bsite_list_atom_iso_displacement
-            master_list_info = master_bsite_list_info
-        else:
-            pass
-
-        mhl_file.close()
-
-
-        try:
-            # example:
-            # 16 clusters with 16 HOH-O hetatms. consv. 0.94
-            try:
-                cluster_selection = int(dialog.ListCalculated.currentItem().text().split()[3])
-            except:
-                cluster_selection = int(dialog.ListCalculated.currentItem().text().split()[5]) # at least
-            try:
-                consv_of_cluster = float(dialog.ListCalculated.currentItem().text().split()[7])
-            except:
-                consv_of_cluster = float(dialog.ListCalculated.currentItem().text().split()[9]) # at least
-
-            print(cluster_selection,consv_of_cluster)
-            # report list
-            bsite_rad = dialog.SpinAddBsiteRad.value()
-            report_list_1.append("\nBinding site info (name, avg x, y, z, min x, max x, min y, max y, min z, max z; box {} A around extremes): \n".format(bsite_rad) + str(SELECTED_SITE))
-            report_list_1.append("\nExamined clusters with " + str(cluster_selection) + " or more {} heteroatoms\n".format(selected_hetatm_typ))
-            report_list_1.append("-" * 25)
-
-        except:
-            QtWidgets.QMessageBox.about(dialog, Plugin_Name+" Warning", "Please select clusters to display")
-            return
-        selected_eps=dialog.SpinDB.value()
-        print(selected_eps,cluster_selection)
-        print("master_list_het",master_list_het)
-        labels3D = DBSCAN(eps=selected_eps, min_samples=cluster_selection).fit_predict(np.array(master_list_het))
-
-        i = 0
-        tocke = []
-        for element in labels3D:
-            temp = []
-            if element != -1:
-                temp.append(master_list_het[i])
-                temp.append(element)
-                temp.append(master_list_het_iso_disp[i])
-                temp.append(master_list_info[i])
-                # tocke -> [x,y,z], nr_cl, B, info
-                tocke.append(temp)
-
-            else:
-                pass
-            i += 1
-
-
-            
         global colour_counter
         
         if display_clusters_setting == False:
+            cmd.delete("clus*")
+            cmd.delete("iso_disp")
             colour_counter = 0
-        
+
+        for item in dialog.ListCalculated.selectedItems():
+
+            master_bsite_list_het = []
+            master_bsite_list_het_coord_x = []
+            master_bsite_list_het_coord_y = []
+            master_bsite_list_het_coord_z = []
+            master_list_het = []
+            master_list_het_coord_x = []
+            master_list_het_coord_y = []
+            master_list_het_coord_z = []
+            # Debye Waller
+            master_bsite_list_atom_iso_displacement = []
+            master_list_het_iso_disp = []
+            # master_list_names = []
+            master_bsite_list_info = []
+            master_list_info = []
+            try:
+                selected_hetatm_typ = item.text().split()[4]
             
-        
-        def get_colour(consv):
-            global colour_counter
+                if selected_hetatm_typ == "least":  selected_hetatm_typ = item.text().split()[6]
+
+            except AttributeError:
+                QtWidgets.QMessageBox.about(dialog, Plugin_Name + " WARNING", "Select HETATM cluster(s) to display in the PyMOL viewer")
+                return
+            print('Clusters of {} Heteroatoms:'.format(selected_hetatm_typ))
+
+            mhl_file = open(os.path.join(MHL_dir,dialog.LineMHLName.text()), "r") 
+            lines = mhl_file.readlines()
+                    #f'{x_hetm} {y_hetm} {z_hetm} {B_hetm} {filename} {seq_nr} {typ}\n'
             
-            col_ls = ["0xFF||","0xFFFF|","0xFF|FF","0x|FF|","0x|FFFF","0x||FF"]
-            
-            colour_hex = hex(int(((1-float(consv))*255))).replace("0x","").upper()
-            if len(colour_hex) == 1:
-                colour_hex = "0" + colour_hex
-            colour = col_ls[colour_counter%len(col_ls)].replace("|",colour_hex)
-            
-            
-            
-            return colour
+            vdw_rad = dialog.SpinRadius.value()
+            for line in lines:
+                if line[0] == "#":
+                    continue
+                x_hetm,y_hetm,z_hetm,B_hetm,serial_nr,chain_iden,hetatm_typ,atom_name,seq_nr,PDB_id = line.strip().split(" ")
+                                #x y z B serial_nr chain_iden hetatom_typ atom_name sequence_nr PDB_id
+                temp_list = []
+                if hetatm_typ+"-"+atom_name == selected_hetatm_typ:
+                
+                    x = float(x_hetm)
+                    y = float(y_hetm)
+                    z = float(z_hetm)
+                    B = float(B_hetm)
+                    
+                    if B < 0:
+                        B = 0
+                    info = "{} {} {} {} {} {}".format(serial_nr,chain_iden,hetatm_typ,atom_name,seq_nr,PDB_id)
 
 
-        if debye_waller_check == False:
+                    
+                    isotropni_displacement = math.sqrt(B/(8*((math.pi)**2))) + vdw_rad
+                    # B = (isotropni_displacement-vdw_rad)**2 * (8*((math.pi)**2)
 
-            if display_clusters_setting == False:
-                cmd.delete("clus*")
-                cmd.delete("iso_disp")
 
+
+                    temp_list.append(x)
+                    temp_list.append(y)
+                    temp_list.append(z)
+
+                    # name of bsite, axerage x, average y, average z, min x, max x, min y, max y, min z, max z
+
+
+                    if bsite_space_check == True and chain_sel == False:
+                        #if SELECTED_SITE[4] - 4 <= temp_list[0] <= SELECTED_SITE[5] + 4:
+                        #    if SELECTED_SITE[6] - 4 <= temp_list[1] <= SELECTED_SITE[7] + 4:
+                        #        if SELECTED_SITE[8] - 4 <= temp_list[2] <= SELECTED_SITE[9] + 4:
+                        if atom_min_x <= temp_list[0] <= atom_max_x:
+                            if atom_min_y <= temp_list[1] <= atom_max_y:
+                                if atom_min_z <= temp_list[2] <= atom_max_z:
+                                    master_bsite_list_het.append(temp_list)
+                                    x2 = float(temp_list[0])
+                                    master_bsite_list_het_coord_x.append(x2)
+                                    y2 = float(temp_list[1])
+                                    master_bsite_list_het_coord_y.append(y2)
+                                    z2 = float(temp_list[2])
+                                    master_bsite_list_het_coord_z.append(z2)
+                                    master_bsite_list_atom_iso_displacement.append(isotropni_displacement)
+                                    master_bsite_list_info.append(info)
+
+                    if bsite_space_check == False and chain_sel == False:
+                        if atom_min_x <= temp_list[0] <= atom_max_x:
+                            if atom_min_y <= temp_list[1] <= atom_max_y:
+                                if atom_min_z <= temp_list[2] <= atom_max_z:
+                                    master_list_het_coord_x.append(x)
+                                    master_list_het_coord_y.append(y)
+                                    master_list_het_coord_z.append(z)
+                                    master_list_het.append(temp_list)
+                                    master_list_het_iso_disp.append(isotropni_displacement)
+                                    master_list_info.append(info)
+
+                    if chain_sel == True:
+                        if atom_min_x <= temp_list[0] <= atom_max_x:
+                            if atom_min_y <= temp_list[1] <= atom_max_y:
+                                if atom_min_z <= temp_list[2] <= atom_max_z:
+                                    master_list_het_coord_x.append(x)
+                                    master_list_het_coord_y.append(y)
+                                    master_list_het_coord_z.append(z)
+                                    master_list_het.append(temp_list)
+                                    master_list_het_iso_disp.append(isotropni_displacement)
+                                    master_list_info.append(info)
+
+
+                    else:
+                        pass
+
+
+            if bsite_space_check == True and chain_sel == False:
+                master_list_het = master_bsite_list_het
+                master_list_het_iso_disp = master_bsite_list_atom_iso_displacement
+                master_list_info = master_bsite_list_info
             else:
                 pass
 
-            for element in list(set(labels3D)):
-                cluster_temp = []
-                
-                
-                for sub_element in tocke:
-                    if sub_element[1] == element:
-                        cluster_temp.append(sub_element[0])
-                        
+            mhl_file.close()
 
 
-                cluster_temp = np.array(cluster_temp)
-                
-                if int(element) == -1:
-                    continue
-
+            try:
+                # example:
+                # 16 clusters with 16 HOH-O hetatms. consv. 0.94
                 try:
+                    cluster_selection = int(item.text().split()[3])
+                except:
+                    cluster_selection = int(item.text().split()[5]) # at least
+                try:
+                    consv_of_cluster = float(item.text().split()[7])
+                except:
+                    consv_of_cluster = float(item.text().split()[9]) # at least
 
-                    print("Cluster {}, nr. of hetatm in cluster: {}".format(element,len(cluster_temp)))
-                    print(cluster_temp)
-                    clust_avg = [np.average(cluster_temp[:,0]),np.average(cluster_temp[:,1]),np.average(cluster_temp[:,2])]
-                    clust_st_dev = [np.std(cluster_temp[:,0]),np.std(cluster_temp[:,1]),np.std(cluster_temp[:,2])]
-                    print("Cluster {} averege pos:   {} {} {}".format(element,round(clust_avg[0],3),round(clust_avg[1],3),round(clust_avg[2],3)))
-                    print("Cluster {} averege stdev: {} {} {}".format(element,round(clust_st_dev[0],3),round(clust_st_dev[1],3),round(clust_st_dev[2],3)))
-                    if element != -1:
-                        report_list_1.append("\n\nCluster nr. {}, composed of {} {} heteroatoms, conservation {}:".format(element,len(cluster_temp),selected_hetatm_typ,round(float(len(cluster_temp))/float(entities),3 ) ))
-                        report_list_1.append("(x y z iso_disp serial_number chain_identifier hetatm_type hetatom_name sequence_number PDB_id)\n")
-                        for sub_element in tocke:
-                            if sub_element[1] == element:
-                                # tocke -> [x,y,z], nr_cl, B, info
-                                report_line = "{} {} {} {} {}".format(sub_element[0][0],sub_element[0][1],sub_element[0][2],round((float(sub_element[2])-vdw_rad)**2 * 8*(math.pi)**2,2),sub_element[3])
-                                report_list_1.append(report_line)
-                    
-                    report_list_1.append("\nCluster {}   Averege pos.:   {} {} {}".format(element,round(clust_avg[0],3),round(clust_avg[1],3),round(clust_avg[2],3)))
-                    report_list_1.append("Cluster {} Averege st. dev.: {} {} {}".format(element,round(clust_st_dev[0],3),round(clust_st_dev[1],3),round(clust_st_dev[2],3)))
+                print(cluster_selection,consv_of_cluster)
+                # report list
+                bsite_rad = dialog.SpinAddBsiteRad.value()
+                report_list_1.append("\nBinding site info (name, avg x, y, z, min x, max x, min y, max y, min z, max z; box {} A around extremes): \n".format(bsite_rad) + str(SELECTED_SITE))
+                report_list_1.append("\nExamined clusters with " + str(cluster_selection) + " or more {} heteroatoms\n".format(selected_hetatm_typ))
+                report_list_1.append("-" * 25)
 
-                    #cmd.set_color("clus_color", "[%f, %f, %f]" % get_colour(round(float(len(cluster_temp))/float(entities))))#(1.0, (1.0 - consv_of_cluster), (1.0 - consv_of_cluster)))
-                    colour = get_colour(round(float(len(cluster_temp))/float(entities),3))
-                    pymol.cmd.do("pseudoatom clus_%s-%d_%.2f, vdw=%f, color=%s, pos=[%f, %f, %f]" % (selected_hetatm_typ, element, consv_of_cluster,vdw_rad,colour, clust_avg[0],clust_avg[1],clust_avg[2]))
-                    cmd.show("spheres", "clus_%s-%d*" % (selected_hetatm_typ,element))
+            except:
+                QtWidgets.QMessageBox.about(dialog, Plugin_Name+" Warning", "Please select clusters to display")
+                return
+            selected_eps=dialog.SpinDB.value()
+            print(selected_eps,cluster_selection)
+            print("master_list_het",master_list_het)
+            labels3D = DBSCAN(eps=selected_eps, min_samples=cluster_selection).fit_predict(np.array(master_list_het))
 
-                except IndexError:
+            i = 0
+            tocke = []
+            for element in labels3D:
+                temp = []
+                if element != -1:
+                    temp.append(master_list_het[i])
+                    temp.append(element)
+                    temp.append(master_list_het_iso_disp[i])
+                    temp.append(master_list_info[i])
+                    # tocke -> [x,y,z], nr_cl, B, info
+                    tocke.append(temp)
+
+                else:
                     pass
+                i += 1
 
-        else:
-            if display_clusters_setting == False:
-                cmd.delete("clus*")
-                cmd.delete("iso_disp")
+
+                
             
-            for element in list(set(labels3D)):
-                cluster_temp = []
-                for sub_element in tocke:
-                    if sub_element[1] == element:
-                        sub_element[0].append(sub_element[2])
-                        cluster_temp.append(sub_element[0])
+            
+                
+            
+            def get_colour(consv):
+                global colour_counter
+                
+                col_ls = ["0xFF||","0xFFFF|","0xFF|FF","0x|FF|","0x|FFFF","0x||FF"]
+                
+                colour_hex = hex(int(((1-float(consv))*255))).replace("0x","").upper()
+                if len(colour_hex) == 1:
+                    colour_hex = "0" + colour_hex
+                colour = col_ls[colour_counter%len(col_ls)].replace("|",colour_hex)
+                
+                
+                
+                return colour
 
-                if int(element) == -1:
-                    continue
 
-                cluster_temp = np.array(cluster_temp)
-                try:
-                    print("Cluster {}, nr. of hetatm in cluster: {}".format(element,len(cluster_temp)))
-                    print(cluster_temp)
-                    clust_avg = [np.average(cluster_temp[:,0]),np.average(cluster_temp[:,1]),np.average(cluster_temp[:,2])]
-                    clust_st_dev = [np.std(cluster_temp[:,0]),np.std(cluster_temp[:,1]),np.std(cluster_temp[:,2])]
+            if debye_waller_check == False:
 
 
-                    if element != -1:
-                        report_list_1.append("\n\nCluster nr. {}, composed of {} {} heteroatoms, conservation {}:".format(element,len(cluster_temp),selected_hetatm_typ,round(float(len(cluster_temp))/float(entities),3 ) ))
-                        report_list_1.append("(x y z iso_disp serial_number chain_identifier hetatm_type hetatom_name sequence_number PDB_id)\n")
-                        for sub_element in tocke:
-                            if sub_element[1] == element:
-                                # tocke -> [x,y,z], nr_cl, B, info
-
-                                report_line = "{} {} {} {} {}".format(sub_element[0][0],sub_element[0][1],sub_element[0][2],round((float(sub_element[2])-vdw_rad)**2 * 8*(math.pi)**2,2),sub_element[3])
-                                report_list_1.append(report_line)
+                
+                for element in list(set(labels3D)):
+                    cluster_temp = []
                     
-                    print("Cluster {} averege pos:   {} {} {}".format(element,round(clust_avg[0],3),round(clust_avg[1],3),round(clust_avg[2],3)))
-                    print("Cluster {} averege stdev: {} {} {}".format(element,round(clust_st_dev[0],3),round(clust_st_dev[1],3),round(clust_st_dev[2],3)))
-                    report_list_1.append("\nCluster {}   Averege pos.:   {} {} {}".format(element,round(clust_avg[0],3),round(clust_avg[1],3),round(clust_avg[2],3)))
-                    report_list_1.append("Cluster {} Averege st. dev.: {} {} {}".format(element,round(clust_st_dev[0],3),round(clust_st_dev[1],3),round(clust_st_dev[2],3)))
-                    #cmd.set_color("clus_color", "[%f, %f, %f]" % (1.0, (1.0 - consv_of_cluster), (1.0 - consv_of_cluster)))
-                    colour = get_colour(round(float(len(cluster_temp))/float(entities),3))
                     
-                    pymol.cmd.do("pseudoatom clus_%s-%d_%.2f, vdw=%f, color=%s, pos=[%f, %f, %f]" % (selected_hetatm_typ, element, consv_of_cluster,vdw_rad,colour, clust_avg[0],clust_avg[1],clust_avg[2]))
-                    cmd.show("spheres", "clus_%s-%d*" % (selected_hetatm_typ,element))
+                    for sub_element in tocke:
+                        if sub_element[1] == element:
+                            cluster_temp.append(sub_element[0])
+                            
 
-                    for tocka in cluster_temp:
 
-                        pymol.cmd.do("pseudoatom iso_disp, vdw=%f, color=red, pos=[%f, %f, %f]" % (tocka[3], tocka[0],tocka[1],tocka[2]))
+                    cluster_temp = np.array(cluster_temp)
+                    
+                    if int(element) == -1:
+                        continue
 
-                    cmd.show("dots", "iso_disp")
+                    try:
 
-                except IndexError:
-                    pass
-        colour_counter += 1
-        
+                        print("Cluster {}, nr. of hetatm in cluster: {}".format(element,len(cluster_temp)))
+                        print(cluster_temp)
+                        clust_avg = [np.average(cluster_temp[:,0]),np.average(cluster_temp[:,1]),np.average(cluster_temp[:,2])]
+                        clust_st_dev = [np.std(cluster_temp[:,0]),np.std(cluster_temp[:,1]),np.std(cluster_temp[:,2])]
+                        print("Cluster {} averege pos:   {} {} {}".format(element,round(clust_avg[0],3),round(clust_avg[1],3),round(clust_avg[2],3)))
+                        print("Cluster {} averege stdev: {} {} {}".format(element,round(clust_st_dev[0],3),round(clust_st_dev[1],3),round(clust_st_dev[2],3)))
+                        if element != -1:
+                            report_list_1.append("\n\nCluster nr. {}, composed of {} {} heteroatoms, conservation {}:".format(element,len(cluster_temp),selected_hetatm_typ,round(float(len(cluster_temp))/float(entities),3 ) ))
+                            report_list_1.append("(x y z iso_disp serial_number chain_identifier hetatm_type hetatom_name sequence_number PDB_id)\n")
+                            for sub_element in tocke:
+                                if sub_element[1] == element:
+                                    # tocke -> [x,y,z], nr_cl, B, info
+                                    report_line = "{} {} {} {} {}".format(sub_element[0][0],sub_element[0][1],sub_element[0][2],round((float(sub_element[2])-vdw_rad)**2 * 8*(math.pi)**2,2),sub_element[3])
+                                    report_list_1.append(report_line)
+                        
+                        report_list_1.append("\nCluster {}   Averege pos.:   {} {} {}".format(element,round(clust_avg[0],3),round(clust_avg[1],3),round(clust_avg[2],3)))
+                        report_list_1.append("Cluster {} Averege st. dev.: {} {} {}".format(element,round(clust_st_dev[0],3),round(clust_st_dev[1],3),round(clust_st_dev[2],3)))
+
+                        #cmd.set_color("clus_color", "[%f, %f, %f]" % get_colour(round(float(len(cluster_temp))/float(entities))))#(1.0, (1.0 - consv_of_cluster), (1.0 - consv_of_cluster)))
+                        colour = get_colour(round(float(len(cluster_temp))/float(entities),3))
+                        pymol.cmd.do("pseudoatom clus_%s-%d_%.2f, vdw=%f, color=%s, pos=[%f, %f, %f]" % (selected_hetatm_typ, element, consv_of_cluster,vdw_rad,colour, clust_avg[0],clust_avg[1],clust_avg[2]))
+                        cmd.show("spheres", "clus_%s-%d*" % (selected_hetatm_typ,element))
+
+                    except IndexError:
+                        pass
+
+            else:
+                
+                
+                for element in list(set(labels3D)):
+                    cluster_temp = []
+                    for sub_element in tocke:
+                        if sub_element[1] == element:
+                            sub_element[0].append(sub_element[2])
+                            cluster_temp.append(sub_element[0])
+
+                    if int(element) == -1:
+                        continue
+
+                    cluster_temp = np.array(cluster_temp)
+                    try:
+                        print("Cluster {}, nr. of hetatm in cluster: {}".format(element,len(cluster_temp)))
+                        print(cluster_temp)
+                        clust_avg = [np.average(cluster_temp[:,0]),np.average(cluster_temp[:,1]),np.average(cluster_temp[:,2])]
+                        clust_st_dev = [np.std(cluster_temp[:,0]),np.std(cluster_temp[:,1]),np.std(cluster_temp[:,2])]
+
+
+                        if element != -1:
+                            report_list_1.append("\n\nCluster nr. {}, composed of {} {} heteroatoms, conservation {}:".format(element,len(cluster_temp),selected_hetatm_typ,round(float(len(cluster_temp))/float(entities),3 ) ))
+                            report_list_1.append("(x y z iso_disp serial_number chain_identifier hetatm_type hetatom_name sequence_number PDB_id)\n")
+                            for sub_element in tocke:
+                                if sub_element[1] == element:
+                                    # tocke -> [x,y,z], nr_cl, B, info
+
+                                    report_line = "{} {} {} {} {}".format(sub_element[0][0],sub_element[0][1],sub_element[0][2],round((float(sub_element[2])-vdw_rad)**2 * 8*(math.pi)**2,2),sub_element[3])
+                                    report_list_1.append(report_line)
+                        
+                        print("Cluster {} averege pos:   {} {} {}".format(element,round(clust_avg[0],3),round(clust_avg[1],3),round(clust_avg[2],3)))
+                        print("Cluster {} averege stdev: {} {} {}".format(element,round(clust_st_dev[0],3),round(clust_st_dev[1],3),round(clust_st_dev[2],3)))
+                        report_list_1.append("\nCluster {}   Averege pos.:   {} {} {}".format(element,round(clust_avg[0],3),round(clust_avg[1],3),round(clust_avg[2],3)))
+                        report_list_1.append("Cluster {} Averege st. dev.: {} {} {}".format(element,round(clust_st_dev[0],3),round(clust_st_dev[1],3),round(clust_st_dev[2],3)))
+                        #cmd.set_color("clus_color", "[%f, %f, %f]" % (1.0, (1.0 - consv_of_cluster), (1.0 - consv_of_cluster)))
+                        colour = get_colour(round(float(len(cluster_temp))/float(entities),3))
+                        
+                        pymol.cmd.do("pseudoatom clus_%s-%d_%.2f, vdw=%f, color=%s, pos=[%f, %f, %f]" % (selected_hetatm_typ, element, consv_of_cluster,vdw_rad,colour, clust_avg[0],clust_avg[1],clust_avg[2]))
+                        cmd.show("spheres", "clus_%s-%d*" % (selected_hetatm_typ,element))
+
+                        for tocka in cluster_temp:
+
+                            pymol.cmd.do("pseudoatom iso_disp, vdw=%f, color=red, pos=[%f, %f, %f]" % (tocka[3], tocka[0],tocka[1],tocka[2]))
+
+                        cmd.show("dots", "iso_disp")
+
+                    except IndexError:
+                        pass
+            colour_counter += 1
+            
 
         # report on cluster
-        report_filename = "report_" + dialog.LineProtein.text().lower()+"_"+ dialog.ComboAlignTool.currentText()+ ".txt"
-        nova_datoteka = open(os.path.join(report_dir,report_filename), "w")
-        for linija in report_list_1:
-            nova_datoteka.write("%s\n" % linija)
-        nova_datoteka.close()
+        report_filename = "report_" + Find.get_target_complex()+"_"+ dialog.ComboAlignTool.currentText()+ ".txt"
+        #rep_file = open(os.path.join(report_dir,report_filename), "w")
+        rep_file = open(os.path.join(report_dir,report_filename), "wb")
+        for line in report_list_1:
+            ln = line + "\n"
+            #rep_file.write(ln)
+            rep_file.write(ln.encode("utf-8"))
+        rep_file.close()
         print("report created...")
 
