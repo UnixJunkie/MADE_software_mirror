@@ -41,4 +41,5 @@ To reinstall the plugin either delete the .MADE_plugin directory or the .MADE_pl
 ## Citation
 Please cite the following paper if you use the MADE plugin in your work:
 
+- Ravnik, V., Jukič, M., and Bren, U. (2023). Identifying Metal Binding Sites in Proteins Using Homologous Structures, the MADE Approach. *Journal of Chemical Information and Modeling*. https://doi.org/10.1021/acs.jcim.3c00558
 
